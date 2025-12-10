@@ -1,12 +1,14 @@
--- Xeno Script: Click to execute ;char command
--- عند الضغط على لاعب، سيتم كتابة ;char [اسم اللاعب] في الشات تلقائياً
-
+-- Xeno Script: /e char on 'G' press and Manual Toggle
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
+
+-- متغير حالة لتفعيل/تعطيل السكربت يدوياً
+local isScriptEnabled = true 
 
 -- وظيفة لإرسال الرسالة في الشات (تدعم النظامين القديم والجديد)
 local function sendChatMessage(message)
@@ -29,43 +31,74 @@ local function sendChatMessage(message)
         end
     end
     
-    -- إذا فشل كلاهما (نادر جداً)
     warn("Could not find a supported chat system to send the command.")
 end
 
--- وظيفة الكشف عن النقر
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- تجاهل النقر إذا كان اللاعب يضغط على واجهة مستخدم (زر مثلاً)
-    if gameProcessed then return end
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local targetPart = Mouse.Target
+-- وظيفة الكشف عن النقر والتحقق من اللاعب
+local function handlePlayerClick()
+    -- فقط عند الضغط على زر G، لا يوجد تحقق من gameProcessed هنا
+    
+    local targetPart = Mouse.Target
+    
+    if targetPart then
+        local character = targetPart.Parent
         
-        if targetPart then
-            local character = targetPart.Parent
-            
-            -- التحقق مما إذا كان الجزء المضغوط تابعاً لملحق (Accessory) أو أداة (Tool)
-            if character:IsA("Accessory") or character:IsA("Tool") then
-                character = character.Parent
-            end
-
-            -- محاولة العثور على اللاعب من الشخصية
-            local targetPlayer = Players:GetPlayerFromCharacter(character)
-            
-            if targetPlayer then
-                local targetName = targetPlayer.Name
-                local command = ";char " .. targetName
-                
-                print("Click detected! Sending command: " .. command)
-                sendChatMessage(command)
-            end
+        -- التحقق مما إذا كان الجزء المضغوط تابعاً لملحق (Accessory) أو أداة (Tool)
+        if character and (character:IsA("Accessory") or character:IsA("Tool")) then
+            character = character.Parent
         end
+
+        -- محاولة العثور على اللاعب من الشخصية
+        local targetPlayer = Players:GetPlayerFromCharacter(character)
+        
+        if targetPlayer and targetPlayer ~= LocalPlayer then -- تأكد من أنه ليس اللاعب المحلي
+            local targetName = targetPlayer.Name
+            -- تغيير الأمر إلى /e char [اسم اللاعب]
+            local command = "/e char " .. targetName
+            
+            print("G key press detected! Sending command: " .. command)
+            sendChatMessage(command)
+        end
+    end
+end
+
+-- وظيفة للتبديل بين تفعيل/تعطيل السكربت (مثلاً بزر P)
+local function toggleScript()
+    isScriptEnabled = not isScriptEnabled
+    local status = isScriptEnabled and "مُفَعَّل (Enabled)" or "مُعَطَّل (Disabled)"
+    
+    StarterGui:SetCore("SendNotification", {
+        Title = "Char Clicker Status";
+        Text = "الحالة الجديدة: " .. status;
+        Duration = 3;
+        Sound = nil; -- إشعار بدون صوت
+    })
+    
+    print("Script status changed to: " .. status)
+end
+
+-- وظيفة الكشف عن ضغطة زر 'G' أو 'P'
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- تجاهل ضغطة الزر إذا كانت معالجة بواسطة النظام (في شات أو واجهة مستخدم)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.G then
+        if isScriptEnabled then
+            -- يتم تنفيذ الوظيفة فقط إذا كان السكربت مُفَعَّلاً
+            handlePlayerClick() 
+        else
+            print("Script is disabled. Press 'P' to enable it.")
+        end
+    elseif input.KeyCode == Enum.KeyCode.P then
+        -- استخدام زر P للتبديل بين التشغيل والإيقاف
+        toggleScript()
     end
 end)
 
 -- إرسال إشعار بأن السكربت يعمل
-game:GetService("StarterGui"):SetCore("SendNotification", {
+StarterGui:SetCore("SendNotification", {
     Title = "Char Clicker Active";
-    Text = "Click on a player to execute ;char [Name]";
+    Text = "مُفَعَّل. اضغط G على لاعب، أو P للتشغيل/الإيقاف";
     Duration = 5;
+    Sound = nil; -- إشعار بدون صوت
 })
