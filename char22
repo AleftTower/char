@@ -53,8 +53,8 @@ local function handlePlayerClick()
         
         if targetPlayer and targetPlayer ~= LocalPlayer then -- تأكد من أنه ليس اللاعب المحلي
             local targetName = targetPlayer.Name
-            -- تغيير الأمر إلى /e char [اسم اللاعب]
-            local command = "/e char " .. targetName
+            -- تغيير الأمر إلى /e /char [اسم اللاعب]
+            local command = "/e /char " .. targetName
             
             print("G key press detected! Sending command: " .. command)
             sendChatMessage(command)
