@@ -1,0 +1,71 @@
+-- Xeno Script: Click to execute ;char command
+-- عند الضغط على لاعب، سيتم كتابة ;char [اسم اللاعب] في الشات تلقائياً
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- وظيفة لإرسال الرسالة في الشات (تدعم النظامين القديم والجديد)
+local function sendChatMessage(message)
+    -- محاولة استخدام نظام الشات القديم (Legacy Chat)
+    local defaultChatSystem = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+    if defaultChatSystem then
+        local sayMessageRequest = defaultChatSystem:FindFirstChild("SayMessageRequest")
+        if sayMessageRequest then
+            sayMessageRequest:FireServer(message, "All")
+            return
+        end
+    end
+
+    -- محاولة استخدام نظام الشات الجديد (TextChatService)
+    if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+        local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if generalChannel then
+            generalChannel:SendAsync(message)
+            return
+        end
+    end
+    
+    -- إذا فشل كلاهما (نادر جداً)
+    warn("Could not find a supported chat system to send the command.")
+end
+
+-- وظيفة الكشف عن النقر
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- تجاهل النقر إذا كان اللاعب يضغط على واجهة مستخدم (زر مثلاً)
+    if gameProcessed then return end
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local targetPart = Mouse.Target
+        
+        if targetPart then
+            local character = targetPart.Parent
+            
+            -- التحقق مما إذا كان الجزء المضغوط تابعاً لملحق (Accessory) أو أداة (Tool)
+            if character:IsA("Accessory") or character:IsA("Tool") then
+                character = character.Parent
+            end
+
+            -- محاولة العثور على اللاعب من الشخصية
+            local targetPlayer = Players:GetPlayerFromCharacter(character)
+            
+            if targetPlayer then
+                local targetName = targetPlayer.Name
+                local command = ";char " .. targetName
+                
+                print("Click detected! Sending command: " .. command)
+                sendChatMessage(command)
+            end
+        end
+    end
+end)
+
+-- إرسال إشعار بأن السكربت يعمل
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Char Clicker Active";
+    Text = "Click on a player to execute ;char [Name]";
+    Duration = 5;
+})
