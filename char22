@@ -1,4 +1,4 @@
--- Xeno Script: Chat Commands Toggle (G for Char, F for Fly2)
+-- Multi-Command Script: G for Char, F for Fly2
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,7 +7,7 @@ local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- وظيفة لإرسال الرسالة في الشات (تدعم النظامين القديم والجديد)
+-- وظيفة إرسال الرسالة في الشات
 local function sendChatMessage(message)
     -- نظام الشات القديم
     local defaultChatSystem = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
@@ -29,42 +29,43 @@ local function sendChatMessage(message)
     end
 end
 
--- وظيفة الحصول على اللاعب تحت الماوس وإرسال الأمر
-local function sendCommandToTarget(commandPrefix, extraArgs)
+-- وظيفة البحث عن اللاعب تحت الماوس وإرسال الأمر
+local function handleInput(cmdType)
     local targetPart = Mouse.Target
     if targetPart then
         local character = targetPart.Parent
-        -- التحقق من الملحقات
-        if character and (character:IsA("Accessory") or character:IsA("Tool")) then
+        -- التحقق من الملحقات (Accessories)
+        if character and character:IsA("Accessory") then
             character = character.Parent
         end
 
         local targetPlayer = Players:GetPlayerFromCharacter(character)
         if targetPlayer and targetPlayer ~= LocalPlayer then
-            local targetName = targetPlayer.Name
-            local fullCommand = commandPrefix .. " " .. targetName .. (extraArgs or "")
-            sendChatMessage(fullCommand)
+            if cmdType == "char" then
+                sendChatMessage("/e /char " .. targetPlayer.Name)
+            elseif cmdType == "fly" then
+                sendChatMessage("/fly2 " .. targetPlayer.Name .. " 100")
+            end
         end
     end
 end
 
--- الكشف عن ضغطات الأزرار
+-- ربط الأزرار
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end -- تجاهل الضغط أثناء الكتابة في الشات
+    if gameProcessed then return end
     
-    -- حرف G لإرسال أمر الكار
     if input.KeyCode == Enum.KeyCode.G then
-        sendCommandToTarget("/e /char")
-        
-    -- حرف F لإرسال أمر الفلاي 2 مع سرعة 100
+        handleInput("char")
     elseif input.KeyCode == Enum.KeyCode.F then
-        sendCommandToTarget("/fly2", " 100")
+        handleInput("fly")
     end
 end)
 
--- إشعار عند التشغيل
+-- إشعار للتأكيد أن السكربت يعمل
 StarterGui:SetCore("SendNotification", {
-    Title = "Multi-Command Active";
-    Text = "G: /char | F: /fly2 (100)";
+    Title = "تم التفعيل بنجاح ✅";
+    Text = "G للـ Char | F للـ Fly2";
     Duration = 5;
 })
+
+print("Script is Running! G = Char, F = Fly2")
