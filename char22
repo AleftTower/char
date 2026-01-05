@@ -1,4 +1,4 @@
--- Multi-Command Script: G for Char, F for Fly2 (Updated Format)
+-- Multi-Command Script: G for Char, MouseButton5 for Fly2
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,8 +34,8 @@ local function handleInput(cmdType)
     local targetPart = Mouse.Target
     if targetPart then
         local character = targetPart.Parent
-        -- التحقق من الملحقات (Accessories)
-        if character and character:IsA("Accessory") then
+        -- التحقق من الملحقات أو الأدوات
+        if character and (character:IsA("Accessory") or character:IsA("Tool")) then
             character = character.Parent
         end
 
@@ -44,29 +44,30 @@ local function handleInput(cmdType)
             if cmdType == "char" then
                 sendChatMessage("/e /char " .. targetPlayer.Name)
             elseif cmdType == "fly" then
-                -- تم تعديل الصيغة هنا لتشمل /e في البداية
                 sendChatMessage("/e /fly2 " .. targetPlayer.Name .. " 100")
             end
         end
     end
 end
 
--- ربط الأزرار
+-- ربط الأزرار (G و MouseButton5)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
+    -- حرف G للكيبورد
     if input.KeyCode == Enum.KeyCode.G then
         handleInput("char")
-    elseif input.KeyCode == Enum.KeyCode.F then
+    -- الزر الخامس في الماوس
+    elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
         handleInput("fly")
     end
 end)
 
--- إشعار للتأكيد أن السكربت يعمل بالصيغة الجديدة
+-- إشعار للتأكيد
 StarterGui:SetCore("SendNotification", {
-    Title = "تم التحديث بنجاح ✅";
-    Text = "G: /e /char | F: /e /fly2";
+    Title = "تم التحديث ✅";
+    Text = "G: /e /char | Mouse5: /e /fly2";
     Duration = 5;
 })
 
-print("Script Updated! F is now /e /fly2 [user] 100")
+print("Script Updated: MouseButton5 is now Fly2 command")
