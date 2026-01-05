@@ -1,18 +1,53 @@
--- Xeno Script: /e char on 'G' press and Manual Toggle
+-- Xeno Script: Char (G) & Fly (F) with GUI
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- متغير حالة لتفعيل/تعطيل السكربت يدوياً
+-- متغيرات الحالة
 local isScriptEnabled = true 
+local isFlying = false
+local flySpeed = 50
+local bodyVelocity, bodyGyro
 
--- وظيفة لإرسال الرسالة في الشات (تدعم النظامين القديم والجديد)
+-- إنشاء القائمة (GUI)
+local sg = Instance.new("ScreenGui", game.CoreGui)
+local frame = Instance.new("Frame", sg)
+local layout = Instance.new("UIListLayout", frame)
+local charBtn = Instance.new("TextButton", frame)
+local flyBtn = Instance.new("TextButton", frame)
+local uiCorner = Instance.new("UICorner", frame)
+
+frame.Size = UDim2.new(0, 150, 0, 100)
+frame.Position = UDim2.new(0.1, 0, 0.5, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Active = true
+frame.Draggable = true
+
+layout.Padding = UDim.new(0, 5)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+-- تصميم الأزرار
+local function styleButton(btn, text)
+    btn.Size = UDim2.new(0, 130, 0, 35)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    Instance.new("UICorner", btn)
+end
+
+styleButton(charBtn, "Char (G)")
+styleButton(flyBtn, "Fly (F): OFF")
+
+-- [وظيفة الشات]
 local function sendChatMessage(message)
-    -- محاولة استخدام نظام الشات القديم (Legacy Chat)
     local defaultChatSystem = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
     if defaultChatSystem then
         local sayMessageRequest = defaultChatSystem:FindFirstChild("SayMessageRequest")
@@ -21,8 +56,6 @@ local function sendChatMessage(message)
             return
         end
     end
-
-    -- محاولة استخدام نظام الشات الجديد (TextChatService)
     if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
         local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
         if generalChannel then
@@ -30,75 +63,69 @@ local function sendChatMessage(message)
             return
         end
     end
-    
-    warn("Could not find a supported chat system to send the command.")
 end
 
--- وظيفة الكشف عن النقر والتحقق من اللاعب
-local function handlePlayerClick()
-    -- فقط عند الضغط على زر G، لا يوجد تحقق من gameProcessed هنا
-    
+-- [وظيفة Char]
+local function runChar()
     local targetPart = Mouse.Target
-    
     if targetPart then
         local character = targetPart.Parent
-        
-        -- التحقق مما إذا كان الجزء المضغوط تابعاً لملحق (Accessory) أو أداة (Tool)
         if character and (character:IsA("Accessory") or character:IsA("Tool")) then
             character = character.Parent
         end
-
-        -- محاولة العثور على اللاعب من الشخصية
         local targetPlayer = Players:GetPlayerFromCharacter(character)
-        
-        if targetPlayer and targetPlayer ~= LocalPlayer then -- تأكد من أنه ليس اللاعب المحلي
-            local targetName = targetPlayer.Name
-            -- تغيير الأمر إلى /e /char [اسم اللاعب]
-            local command = "/e /char " .. targetName
-            
-            print("G key press detected! Sending command: " .. command)
-            sendChatMessage(command)
+        if targetPlayer and targetPlayer ~= LocalPlayer then
+            sendChatMessage("/e /char " .. targetPlayer.Name)
         end
     end
 end
 
--- وظيفة للتبديل بين تفعيل/تعطيل السكربت (مثلاً بزر P)
-local function toggleScript()
-    isScriptEnabled = not isScriptEnabled
-    local status = isScriptEnabled and "مُفَعَّل (Enabled)" or "مُعَطَّل (Disabled)"
-    
-    StarterGui:SetCore("SendNotification", {
-        Title = "Char Clicker Status";
-        Text = "الحالة الجديدة: " .. status;
-        Duration = 3;
-        Sound = nil; -- إشعار بدون صوت
-    })
-    
-    print("Script status changed to: " .. status)
+-- [وظيفة الطيران Fly]
+local function toggleFly()
+    isFlying = not isFlying
+    flyBtn.Text = isFlying and "Fly (F): ON" or "Fly (F): OFF"
+    flyBtn.BackgroundColor3 = isFlying and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
+
+    if isFlying then
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        
+        bodyVelocity = Instance.new("BodyVelocity", root)
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        
+        bodyGyro = Instance.new("BodyGyro", root)
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.CFrame = root.CFrame
+        
+        task.spawn(function()
+            while isFlying do
+                RunService.RenderStepped:Wait()
+                bodyVelocity.Velocity = Mouse.Hit.LookVector * flySpeed
+                bodyGyro.CFrame = Mouse.Hit
+            end
+            if bodyVelocity then bodyVelocity:Destroy() end
+            if bodyGyro then bodyGyro:Destroy() end
+        end)
+    end
 end
 
--- وظيفة الكشف عن ضغطة زر 'G' أو 'P'
+-- ربط الأزرار والأزرار
+charBtn.MouseButton1Click:Connect(runChar)
+flyBtn.MouseButton1Click:Connect(toggleFly)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- تجاهل ضغطة الزر إذا كانت معالجة بواسطة النظام (في شات أو واجهة مستخدم)
     if gameProcessed then return end
     
     if input.KeyCode == Enum.KeyCode.G then
-        if isScriptEnabled then
-            -- يتم تنفيذ الوظيفة فقط إذا كان السكربت مُفَعَّلاً
-            handlePlayerClick() 
-        else
-            print("Script is disabled. Press 'P' to enable it.")
-        end
-    elseif input.KeyCode == Enum.KeyCode.P then
-        -- استخدام زر P للتبديل بين التشغيل والإيقاف
-        toggleScript()
+        runChar()
+    elseif input.KeyCode == Enum.KeyCode.F then
+        toggleFly()
     end
 end)
 
--- إرسال إشعار بأن السكربت يعمل
 StarterGui:SetCore("SendNotification", {
-    Title = "Char Clicker Active";
-    Text = "مُفَعَّل. اضغط G على لاعب، أو P للتشغيل/الإيقاف";
+    Title = "Script Loaded";
+    Text = "G: Char | F: Fly";
     Duration = 5;
-    Sound = nil; -- إشعار بدون صوت
 })
