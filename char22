@@ -1,4 +1,4 @@
--- Multi-Command Script: G for Char, F for Fly2
+-- Multi-Command Script: G for Char, F for Fly2 (Updated Format)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,7 +44,8 @@ local function handleInput(cmdType)
             if cmdType == "char" then
                 sendChatMessage("/e /char " .. targetPlayer.Name)
             elseif cmdType == "fly" then
-                sendChatMessage("/fly2 " .. targetPlayer.Name .. " 100")
+                -- تم تعديل الصيغة هنا لتشمل /e في البداية
+                sendChatMessage("/e /fly2 " .. targetPlayer.Name .. " 100")
             end
         end
     end
@@ -61,11 +62,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- إشعار للتأكيد أن السكربت يعمل
+-- إشعار للتأكيد أن السكربت يعمل بالصيغة الجديدة
 StarterGui:SetCore("SendNotification", {
-    Title = "تم التفعيل بنجاح ✅";
-    Text = "G للـ Char | F للـ Fly2";
+    Title = "تم التحديث بنجاح ✅";
+    Text = "G: /e /char | F: /e /fly2";
     Duration = 5;
 })
 
-print("Script is Running! G = Char, F = Fly2")
+print("Script Updated! F is now /e /fly2 [user] 100")
