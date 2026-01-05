@@ -1,4 +1,4 @@
--- Multi-Command Script: G for Char, MouseButton5 for Fly2
+-- Multi-Command Script: G for Char, Z for Fly2
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -50,15 +50,15 @@ local function handleInput(cmdType)
     end
 end
 
--- ربط الأزرار (G و MouseButton5)
+-- ربط الأزرار (G و Z)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    -- حرف G للكيبورد
+    -- حرف G لعمل Char
     if input.KeyCode == Enum.KeyCode.G then
         handleInput("char")
-    -- الزر الخامس في الماوس
-    elseif input.UserInputType == Enum.UserInputType.MouseButton5 then
+    -- حرف Z لعمل Fly2
+    elseif input.KeyCode == Enum.KeyCode.Z then
         handleInput("fly")
     end
 end)
@@ -66,8 +66,8 @@ end)
 -- إشعار للتأكيد
 StarterGui:SetCore("SendNotification", {
     Title = "تم التحديث ✅";
-    Text = "G: /e /char | Mouse5: /e /fly2";
+    Text = "G: /e /char | Z: /e /fly2";
     Duration = 5;
 })
 
-print("Script Updated: MouseButton5 is now Fly2 command")
+print("Script Updated: Z is now the Fly2 command")
