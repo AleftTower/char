@@ -1,53 +1,15 @@
--- Xeno Script: Char (G) & Fly (F) with GUI
+-- Xeno Script: Chat Commands Toggle (G for Char, F for Fly2)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
-local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- متغيرات الحالة
-local isScriptEnabled = true 
-local isFlying = false
-local flySpeed = 50
-local bodyVelocity, bodyGyro
-
--- إنشاء القائمة (GUI)
-local sg = Instance.new("ScreenGui", game.CoreGui)
-local frame = Instance.new("Frame", sg)
-local layout = Instance.new("UIListLayout", frame)
-local charBtn = Instance.new("TextButton", frame)
-local flyBtn = Instance.new("TextButton", frame)
-local uiCorner = Instance.new("UICorner", frame)
-
-frame.Size = UDim2.new(0, 150, 0, 100)
-frame.Position = UDim2.new(0.1, 0, 0.5, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.Active = true
-frame.Draggable = true
-
-layout.Padding = UDim.new(0, 5)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
-
--- تصميم الأزرار
-local function styleButton(btn, text)
-    btn.Size = UDim2.new(0, 130, 0, 35)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 18
-    Instance.new("UICorner", btn)
-end
-
-styleButton(charBtn, "Char (G)")
-styleButton(flyBtn, "Fly (F): OFF")
-
--- [وظيفة الشات]
+-- وظيفة لإرسال الرسالة في الشات (تدعم النظامين القديم والجديد)
 local function sendChatMessage(message)
+    -- نظام الشات القديم
     local defaultChatSystem = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
     if defaultChatSystem then
         local sayMessageRequest = defaultChatSystem:FindFirstChild("SayMessageRequest")
@@ -56,6 +18,8 @@ local function sendChatMessage(message)
             return
         end
     end
+
+    -- نظام الشات الجديد
     if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
         local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
         if generalChannel then
@@ -65,67 +29,42 @@ local function sendChatMessage(message)
     end
 end
 
--- [وظيفة Char]
-local function runChar()
+-- وظيفة الحصول على اللاعب تحت الماوس وإرسال الأمر
+local function sendCommandToTarget(commandPrefix, extraArgs)
     local targetPart = Mouse.Target
     if targetPart then
         local character = targetPart.Parent
+        -- التحقق من الملحقات
         if character and (character:IsA("Accessory") or character:IsA("Tool")) then
             character = character.Parent
         end
+
         local targetPlayer = Players:GetPlayerFromCharacter(character)
         if targetPlayer and targetPlayer ~= LocalPlayer then
-            sendChatMessage("/e /char " .. targetPlayer.Name)
+            local targetName = targetPlayer.Name
+            local fullCommand = commandPrefix .. " " .. targetName .. (extraArgs or "")
+            sendChatMessage(fullCommand)
         end
     end
 end
 
--- [وظيفة الطيران Fly]
-local function toggleFly()
-    isFlying = not isFlying
-    flyBtn.Text = isFlying and "Fly (F): ON" or "Fly (F): OFF"
-    flyBtn.BackgroundColor3 = isFlying and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(60, 60, 60)
-
-    if isFlying then
-        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
-        
-        bodyVelocity = Instance.new("BodyVelocity", root)
-        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        
-        bodyGyro = Instance.new("BodyGyro", root)
-        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        bodyGyro.CFrame = root.CFrame
-        
-        task.spawn(function()
-            while isFlying do
-                RunService.RenderStepped:Wait()
-                bodyVelocity.Velocity = Mouse.Hit.LookVector * flySpeed
-                bodyGyro.CFrame = Mouse.Hit
-            end
-            if bodyVelocity then bodyVelocity:Destroy() end
-            if bodyGyro then bodyGyro:Destroy() end
-        end)
-    end
-end
-
--- ربط الأزرار والأزرار
-charBtn.MouseButton1Click:Connect(runChar)
-flyBtn.MouseButton1Click:Connect(toggleFly)
-
+-- الكشف عن ضغطات الأزرار
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if gameProcessed then return end -- تجاهل الضغط أثناء الكتابة في الشات
     
+    -- حرف G لإرسال أمر الكار
     if input.KeyCode == Enum.KeyCode.G then
-        runChar()
+        sendCommandToTarget("/e /char")
+        
+    -- حرف F لإرسال أمر الفلاي 2 مع سرعة 100
     elseif input.KeyCode == Enum.KeyCode.F then
-        toggleFly()
+        sendCommandToTarget("/fly2", " 100")
     end
 end)
 
+-- إشعار عند التشغيل
 StarterGui:SetCore("SendNotification", {
-    Title = "Script Loaded";
-    Text = "G: Char | F: Fly";
+    Title = "Multi-Command Active";
+    Text = "G: /char | F: /fly2 (100)";
     Duration = 5;
 })
